@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Hostel Reviews{% endblock %}
+
+{% block content %}
+<main class="container my-5">
+  <div class="row">
+    <div class="col-md-5 mx-auto">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="card-title mb-4 text-center"><i class="fa-solid fa-user-plus me-2" style="color:var(--gold)"></i>Create Account</h3>
+          
+          {% if error %}
+            <div class="alert alert-danger" role="alert">
+              <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ error }}
+            </div>
+          {% endif %}
+
+          <form method="post">
+            <div class="mb-3">
+              <label class="form-label">Full Name</label>
+              <input class="form-control" type="text" name="name" placeholder="Your name" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email Address</label>
+              <input class="form-control" type="email" name="email" placeholder="you@example.com" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input class="form-control" type="password" name="password" placeholder="At least 4 characters" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Confirm Password</label>
+              <input class="form-control" type="password" name="confirm_password" placeholder="Re-enter password" required>
+            </div>
+
+            <button class="btn btn-primary w-100 mb-3" type="submit"><i class="fa-solid fa-user-check me-1"></i>Create Account</button>
+          </form>
+
+          <hr class="my-3">
+          <p class="text-center text-muted mb-0">
+            Already have an account? <a href="/login" class="text-decoration-none fw-600">Login here</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Add Review - Hostel Reviews{% endblock %}
+
+{% block content %}
+    <main class="container my-5">
+      <div class="row">
+          <div class="col-md-8 mx-auto">
+          <h3 class="mb-3">Add a Review</h3>
+          <form action="/submit_review" method="post" id="reviewForm" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Choose Hostel</label>
+              <select class="form-select" name="hostel_id" id="hostelSelect">
+                <option value="">-- Select existing hostel --</option>
+                {% for h in hostels %}
+                  <option value="{{ h.id }}" {% if selected==h.id %}selected{% endif %}>{{ h.name }} — {{ h.location }}</option>
+                {% endfor %}
+                <option value="__new__">Add new hostel</option>
+              </select>
+            </div>
+
+            <div id="newHostelFields" style="display:none;">
+              <div class="mb-3">
+                <label class="form-label">New Hostel Name</label>
+                <input class="form-control" name="new_hostel_name" placeholder="Hostel name">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Location</label>
+                <input class="form-control" name="new_hostel_location" placeholder="City or area">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Hostel Image (optional)</label>
+                <input class="form-control" type="file" name="new_hostel_image" accept="image/*">
+              </div>
+            </div>
+
+            <!-- reviewer is taken from logged-in user -->
+
+            <div class="mb-3">
+              <label class="form-label">Overall Rating</label>
+              <select class="form-select" name="rating_overall">
+                <option value="">No rating</option>
+                <option>5</option>
+                <option>4</option>
+                <option>3</option>
+                <option>2</option>
+                <option>1</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Food</label>
+                <select class="form-select" name="rating_food">
+                  <option value="">—</option>
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Cleaning</label>
+                <select class="form-select" name="rating_cleaning">
+                  <option value="">—</option>
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Staff</label>
+                <select class="form-select" name="rating_staff">
+                  <option value="">—</option>
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Location</label>
+                <select class="form-select" name="rating_location">
+                  <option value="">—</option>
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Owner Behaviour</label>
+                <select class="form-select" name="rating_owner">
+                  <option value="">—</option>
+                  <option>5</option>
+                  <option>4</option>
+                  <option>3</option>
+                  <option>2</option>
+                  <option>1</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Comment</label>
+              <textarea class="form-control" name="comment" rows="4" placeholder="Share your experience"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <a class="btn btn-outline-secondary" href="/hostels"><i class="fa-solid fa-arrow-left me-1"></i>Back</a>
+              <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane me-1"></i>Submit Review</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+  {% endblock %}

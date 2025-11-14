@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Hostels - Hostel Reviews{% endblock %}
+
+{% block content %}
+    <main class="container my-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Hostels</h2>
+        <form class="d-flex" action="/hostels" method="get">
+          <input name="q" value="{{ query }}" class="form-control me-2 rounded-pill" style="min-width:260px;" placeholder="Search by name or location">
+          <button class="btn btn-primary rounded-pill">Search</button>
+        </form>
+      </div>
+
+      {% if hostels|length == 0 %}
+        <div class="alert alert-info">No hostels found. Try a different search.</div>
+      {% endif %}
+
+      <div class="row">
+        {% for hostel in hostels %}
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm h-100">
+            {% if hostel.image %}
+              <img src="{{ hostel.image }}" class="card-img-top" style="height:200px;object-fit:cover;" alt="hostel image">
+            {% else %}
+              <div style="height:200px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg, rgba(63,43,99,0.06), rgba(201,163,74,0.03));border-top-left-radius:14px;border-top-right-radius:14px;">
+                <i class="fa-solid fa-building fa-3x" style="color:var(--royal-purple, #3f2b63)"></i>
+              </div>
+            {% endif %}
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h5 class="card-title mb-1">{{ hostel.name }}</h5>
+                  <div class="text-muted small">{{ hostel.location }}</div>
+                </div>
+                <div class="text-end">
+                  {% if hostel.avg_rating %}
+                    <span class="badge bg-primary">{{ hostel.avg_rating }} ★</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No rating</span>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="card-text mt-2">{{ hostel.description }}</p>
+              <div class="small text-muted mb-2">Category averages: 
+                {% set av = hostel.rating_counts %}
+                <span class="mx-1">Food: {{ av['food'] or '—' }}★</span>
+                <span class="mx-1">Cleaning: {{ av['cleaning'] or '—' }}★</span>
+                <span class="mx-1">Staff: {{ av['staff'] or '—' }}★</span>
+                <span class="mx-1">Location: {{ av['location'] or '—' }}★</span>
+                <span class="mx-1">Owner: {{ av['owner'] or '—' }}★</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                  <a class="btn btn-outline-primary" href="/review?hostel_id={{ hostel.id }}"><i class="fa-solid fa-plus me-1"></i>Add Review</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="/export_reviews?hostel_id={{ hostel.id }}"><i class="fa-solid fa-file-csv me-1"></i>Export</a>
+                </div>
+                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#reviews-{{ loop.index }}">View Reviews ({{ hostel.reviews|length }})</button>
+              </div>
+
+              <div class="collapse mt-3" id="reviews-{{ loop.index }}">
+                <div class="mb-2">
+                  <strong>Ratings breakdown:</strong>
+                  <div class="small text-muted">{% for i in range(5,0,-1) %}{{ i }}★: {{ hostel.rating_counts[i|string] }} {% if not loop.last %}| {% endif %}{% endfor %}</div>
+                </div>
+                {% for r in hostel.reviews %}
+                  <div class="border rounded p-2 mb-2 review">
+                    <div class="d-flex justify-content-between">
+                      <strong>{{ r.reviewer_name or 'Anonymous' }}</strong>
+                      <small class="text-muted">{{ r.rating_overall or '—' }} ★</small>
+                    </div>
+                    <div class="small text-muted">{{ r.date }}</div>
+                    <p class="mb-1">{{ r.comment }}</p>
+                    <div class="small text-muted">Details: Food: {{ r.rating_food or '—' }} | Clean: {{ r.rating_cleaning or '—' }} | Staff: {{ r.rating_staff or '—' }} | Loc: {{ r.rating_location or '—' }} | Owner: {{ r.rating_owner or '—' }}</div>
+                  </div>
+                {% else %}
+                  <div class="text-muted">No reviews yet.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </main>
+{% endblock %}

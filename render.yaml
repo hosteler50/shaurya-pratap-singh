@@ -1,0 +1,15 @@
+# Render.com deployment configuration
+# Add this file to your repository root for Render to auto-detect and deploy
+
+services:
+  - type: web
+    name: hostel-review-app
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
