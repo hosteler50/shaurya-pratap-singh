@@ -32,6 +32,22 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 def create_tables():
     """Create database tables on first request."""
     db.create_all()
+    seed_sample_data()
+
+
+def seed_sample_data():
+    """Add sample hostels on first startup if DB is empty."""
+    with app.app_context():
+        # Only seed if no hostels exist
+        if Hostel.query.first() is None:
+            sample_hostels = [
+                Hostel(name='Maple Residency', location='Downtown', description='Clean rooms, friendly staff', image=''),
+                Hostel(name='Seaside Lodge', location='Beachfront', description='Great view and lively area', image=''),
+                Hostel(name='Mountain View Hostel', location='Himalayan Region', description='Peaceful mountain retreat with stunning views', image=''),
+            ]
+            for hostel in sample_hostels:
+                db.session.add(hostel)
+            db.session.commit()
 
 
 def save_hostel_image(file_storage):
