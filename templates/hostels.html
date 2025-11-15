@@ -3,84 +3,186 @@
 {% block title %}Hostels - Hostel Reviews{% endblock %}
 
 {% block content %}
-    <main class="container my-5">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Hostels</h2>
-        <form class="d-flex" action="/hostels" method="get">
-          <input name="q" value="{{ query }}" class="form-control me-2 rounded-pill" style="min-width:260px;" placeholder="Search by name or location">
-          <button class="btn btn-primary rounded-pill">Search</button>
-        </form>
-      </div>
+<main class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <h2 class="mb-0" style="color: var(--royal-purple, #3f2b63);">
+      <i class="fa-solid fa-building me-2"></i>Explore Hostels
+    </h2>
+    <form class="d-flex gap-2" action="/hostels" method="get">
+      <input name="q" value="{{ query }}" class="form-control rounded-pill" style="min-width:260px;" placeholder="🔍 Search by name or location">
+      <button class="btn rounded-pill" style="background: linear-gradient(135deg, var(--royal-purple, #3f2b63), #6b4c99); color: white;">Search</button>
+    </form>
+  </div>
 
-      {% if hostels|length == 0 %}
-        <div class="alert alert-info">No hostels found. Try a different search.</div>
-      {% endif %}
+  {% if hostels|length == 0 %}
+    <div class="alert alert-info rounded-3" style="background: rgba(63,43,99,0.08); border: 1px solid var(--royal-purple, #3f2b63); color: var(--royal-purple, #3f2b63);">
+      <i class="fa-solid fa-info-circle me-2"></i>No hostels found. Try a different search or <a href="/review" style="color: var(--royal-purple, #3f2b63); font-weight: bold;">add a new one!</a>
+    </div>
+  {% endif %}
 
-      <div class="row">
-        {% for hostel in hostels %}
-        <div class="col-md-6 mb-4">
-          <div class="card shadow-sm h-100">
-            {% if hostel.image %}
-              <img src="{{ hostel.image }}" class="card-img-top" style="height:200px;object-fit:cover;" alt="hostel image">
+  <div class="row">
+    {% for hostel in hostels %}
+    <div class="col-lg-6 mb-5">
+      <div class="card shadow-lg h-100 rounded-4 overflow-hidden" style="border: none; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 40px rgba(63,43,99,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.1)'">
+        <!-- Hostel Image -->
+        {% if hostel.image %}
+          <img src="{{ hostel.image }}" class="card-img-top" style="height:250px; object-fit:cover;" alt="hostel image">
+        {% else %}
+          <div style="height:250px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(63,43,99,0.1), rgba(201,163,74,0.05));">
+            <i class="fa-solid fa-building fa-5x" style="color:var(--royal-purple, #3f2b63); opacity:0.3;"></i>
+          </div>
+        {% endif %}
+
+        <div class="card-body">
+          <!-- Header: Name + Rating Badge -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h4 class="card-title mb-1" style="color: var(--royal-purple, #3f2b63);">{{ hostel.name }}</h4>
+              <div class="text-muted small"><i class="fa-solid fa-map-pin me-1"></i>{{ hostel.location }}</div>
+            </div>
+            {% if hostel.avg_rating %}
+              <span class="badge rounded-pill" style="background: linear-gradient(135deg, #ffc107, #ff9800); color: white; font-size: 0.95rem; padding: 8px 12px;">
+                <i class="fa-solid fa-star me-1"></i>{{ hostel.avg_rating }}
+              </span>
             {% else %}
-              <div style="height:200px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg, rgba(63,43,99,0.06), rgba(201,163,74,0.03));border-top-left-radius:14px;border-top-right-radius:14px;">
-                <i class="fa-solid fa-building fa-3x" style="color:var(--royal-purple, #3f2b63)"></i>
-              </div>
+              <span class="badge bg-light text-dark rounded-pill">No ratings</span>
             {% endif %}
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <h5 class="card-title mb-1">{{ hostel.name }}</h5>
-                  <div class="text-muted small">{{ hostel.location }}</div>
-                </div>
-                <div class="text-end">
-                  {% if hostel.avg_rating %}
-                    <span class="badge bg-primary">{{ hostel.avg_rating }} ★</span>
-                  {% else %}
-                    <span class="badge bg-secondary">No rating</span>
-                  {% endif %}
-                </div>
-              </div>
-              <p class="card-text mt-2">{{ hostel.description }}</p>
-              <div class="small text-muted mb-2">Category averages: 
-                {% set av = hostel.rating_counts %}
-                <span class="mx-1">Food: {{ av['food'] or '—' }}★</span>
-                <span class="mx-1">Cleaning: {{ av['cleaning'] or '—' }}★</span>
-                <span class="mx-1">Staff: {{ av['staff'] or '—' }}★</span>
-                <span class="mx-1">Location: {{ av['location'] or '—' }}★</span>
-                <span class="mx-1">Owner: {{ av['owner'] or '—' }}★</span>
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex gap-2">
-                  <a class="btn btn-outline-primary" href="/review?hostel_id={{ hostel.id }}"><i class="fa-solid fa-plus me-1"></i>Add Review</a>
-                  <a class="btn btn-sm btn-outline-secondary" href="/export_reviews?hostel_id={{ hostel.id }}"><i class="fa-solid fa-file-csv me-1"></i>Export</a>
-                </div>
-                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#reviews-{{ loop.index }}">View Reviews ({{ hostel.reviews|length }})</button>
-              </div>
+          </div>
 
-              <div class="collapse mt-3" id="reviews-{{ loop.index }}">
-                <div class="mb-2">
-                  <strong>Ratings breakdown:</strong>
-                  <div class="small text-muted">{% for i in range(5,0,-1) %}{{ i }}★: {{ hostel.rating_counts[i|string] }} {% if not loop.last %}| {% endif %}{% endfor %}</div>
-                </div>
-                {% for r in hostel.reviews %}
-                  <div class="border rounded p-2 mb-2 review">
-                    <div class="d-flex justify-content-between">
-                      <strong>{{ r.reviewer_name or 'Anonymous' }}</strong>
-                      <small class="text-muted">{{ r.rating_overall or '—' }} ★</small>
-                    </div>
-                    <div class="small text-muted">{{ r.date }}</div>
-                    <p class="mb-1">{{ r.comment }}</p>
-                    <div class="small text-muted">Details: Food: {{ r.rating_food or '—' }} | Clean: {{ r.rating_cleaning or '—' }} | Staff: {{ r.rating_staff or '—' }} | Loc: {{ r.rating_location or '—' }} | Owner: {{ r.rating_owner or '—' }}</div>
-                  </div>
-                {% else %}
-                  <div class="text-muted">No reviews yet.</div>
-                {% endfor %}
+          <!-- Description -->
+          <p class="card-text text-muted small mb-3">{{ hostel.description }}</p>
+
+          <!-- Category Ratings - Visual Stars -->
+          <div class="mb-4">
+            <div class="small fw-bold mb-2" style="color: var(--royal-purple, #3f2b63);">Category Ratings</div>
+            {% set av = hostel.rating_counts %}
+            <div class="row small">
+              <div class="col-6 mb-2">
+                <div><strong>🍽️ Food</strong></div>
+                <div>{{ av['food'] or '—' }} <span style="color: #ffc107;">{% if av['food'] %}{% for i in range(1, av['food']|int + 1) %}★{% endfor %}{% endif %}</span></div>
+              </div>
+              <div class="col-6 mb-2">
+                <div><strong>🧹 Cleanliness</strong></div>
+                <div>{{ av['cleaning'] or '—' }} <span style="color: #ffc107;">{% if av['cleaning'] %}{% for i in range(1, av['cleaning']|int + 1) %}★{% endfor %}{% endif %}</span></div>
+              </div>
+              <div class="col-6 mb-2">
+                <div><strong>👥 Staff</strong></div>
+                <div>{{ av['staff'] or '—' }} <span style="color: #ffc107;">{% if av['staff'] %}{% for i in range(1, av['staff']|int + 1) %}★{% endfor %}{% endif %}</span></div>
+              </div>
+              <div class="col-6 mb-2">
+                <div><strong>📍 Location</strong></div>
+                <div>{{ av['location'] or '—' }} <span style="color: #ffc107;">{% if av['location'] %}{% for i in range(1, av['location']|int + 1) %}★{% endfor %}{% endif %}</span></div>
+              </div>
+              <div class="col-6 mb-2">
+                <div><strong>👤 Owner</strong></div>
+                <div>{{ av['owner'] or '—' }} <span style="color: #ffc107;">{% if av['owner'] %}{% for i in range(1, av['owner']|int + 1) %}★{% endfor %}{% endif %}</span></div>
               </div>
             </div>
           </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex gap-2 mb-3">
+            <a class="btn btn-sm rounded-3" href="/review?hostel_id={{ hostel.id }}" style="background: linear-gradient(135deg, var(--royal-purple, #3f2b63), #6b4c99); color: white; flex: 1; text-align: center;">
+              <i class="fa-solid fa-plus me-1"></i>Add Review
+            </a>
+            <button class="btn btn-sm rounded-3 flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#reviews-{{ loop.index }}" style="background: linear-gradient(135deg, rgba(63,43,99,0.1), rgba(201,163,74,0.1)); color: var(--royal-purple, #3f2b63); border: 1px solid var(--royal-purple, #3f2b63);">
+              <i class="fa-solid fa-comments me-1"></i>Reviews ({{ hostel.reviews|length }})
+            </button>
+          </div>
+
+          <!-- Reviews Section -->
+          <div class="collapse" id="reviews-{{ loop.index }}">
+            <div class="border-top pt-3">
+              {% if hostel.reviews %}
+                <div class="small text-muted mb-3">
+                  <strong>Overall breakdown:</strong>
+                  {% for i in range(5,0,-1) %}
+                    <div class="d-inline-block me-2">{{ i }}⭐: <strong>{{ hostel.rating_counts[i|string] }}</strong></div>
+                  {% endfor %}
+                </div>
+
+                {% for r in hostel.reviews %}
+                  <div class="review-card p-3 mb-3 rounded-3" style="background: linear-gradient(135deg, rgba(63,43,99,0.04), rgba(201,163,74,0.02)); border-left: 4px solid var(--royal-purple, #3f2b63);">
+                    <!-- Review Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <strong style="color: var(--royal-purple, #3f2b63);">{{ r.reviewer_name or 'Anonymous' }}</strong>
+                        <div class="small text-muted">{{ r.date }}</div>
+                      </div>
+                      {% if r.rating_overall %}
+                        <span style="font-size: 1.1rem; color: #ffc107;">
+                          {% for i in range(1, r.rating_overall|int + 1) %}★{% endfor %}
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    <!-- Reviewer Details -->
+                    <div class="small text-muted mb-2" style="border-bottom: 1px solid rgba(63,43,99,0.1); padding-bottom: 8px;">
+                      {% if r.reviewer_college %}<span class="me-3"><i class="fa-solid fa-graduation-cap me-1"></i>{{ r.reviewer_college }}</span>{% endif %}
+                      {% if r.reviewer_course %}<span class="me-3"><i class="fa-solid fa-book me-1"></i>{{ r.reviewer_course }}</span>{% endif %}
+                      {% if r.reviewer_mobile %}<span class="me-3"><i class="fa-solid fa-phone me-1"></i>{{ r.reviewer_mobile }}</span>{% endif %}
+                    </div>
+
+                    <!-- Hostel Details -->
+                    {% if r.fees_per_year or r.room_sharing %}
+                      <div class="small mb-2" style="color: var(--royal-purple, #3f2b63);">
+                        {% if r.fees_per_year %}<span class="me-3"><strong>₹ {{ r.fees_per_year }}/yr</strong></span>{% endif %}
+                        {% if r.room_sharing %}<span><strong>{{ r.room_sharing }}-sharing</strong></span>{% endif %}
+                      </div>
+                    {% endif %}
+
+                    <!-- Comment -->
+                    <p class="mb-2">{{ r.comment }}</p>
+
+                    <!-- Ratings Breakdown -->
+                    {% if r.rating_food or r.rating_cleaning or r.rating_staff or r.rating_location or r.rating_owner %}
+                      <div class="small text-muted">
+                        <strong>Ratings:</strong>
+                        {% if r.rating_food %}<span class="me-2">🍽️ {{ r.rating_food }}★</span>{% endif %}
+                        {% if r.rating_cleaning %}<span class="me-2">🧹 {{ r.rating_cleaning }}★</span>{% endif %}
+                        {% if r.rating_staff %}<span class="me-2">👥 {{ r.rating_staff }}★</span>{% endif %}
+                        {% if r.rating_location %}<span class="me-2">📍 {{ r.rating_location }}★</span>{% endif %}
+                        {% if r.rating_owner %}<span class="me-2">👤 {{ r.rating_owner }}★</span>{% endif %}
+                      </div>
+                    {% endif %}
+
+                    <!-- Address -->
+                    {% if r.reviewer_address %}
+                      <div class="small text-muted mt-2">
+                        <i class="fa-solid fa-map me-1"></i>{{ r.reviewer_address }}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="alert alert-light rounded-3" style="color: var(--royal-purple, #3f2b63);">
+                  <i class="fa-solid fa-comment-dots me-2"></i>No reviews yet. Be the first to share your experience!
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        {% endfor %}
       </div>
-    </main>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Floating Action Button -->
+  <div style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">
+    <a href="/review" class="btn btn-lg rounded-circle" style="background: linear-gradient(135deg, var(--royal-purple, #3f2b63), #6b4c99); color: white; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(63,43,99,0.3); text-decoration: none;" title="Add New Review">
+      <i class="fa-solid fa-plus fa-lg"></i>
+    </a>
+  </div>
+</main>
+
+<style>
+  .review-card {
+    transition: all 0.3s ease;
+  }
+  .review-card:hover {
+    box-shadow: 0 8px 16px rgba(63,43,99,0.15);
+    transform: translateX(4px);
+  }
+</style>
+
 {% endblock %}

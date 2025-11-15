@@ -30,7 +30,7 @@ def ensure_data_file():
         hs.append([str(uuid.uuid4()), 'Seaside Lodge', 'Beachfront', 'Great view and lively area', ''])
 
         rs = wb.create_sheet('Reviews')
-        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'comment', 'date'])
+        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'reviewer_mobile', 'reviewer_college', 'reviewer_course', 'reviewer_address', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'fees_per_year', 'room_sharing', 'comment', 'date'])
 
         us = wb.create_sheet('Users')
         us.append(['id', 'email', 'password_hash', 'name'])
@@ -48,7 +48,7 @@ def load_workbook_safe():
         modified = True
     if 'Reviews' not in wb.sheetnames:
         rs = wb.create_sheet('Reviews')
-        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'comment', 'date'])
+        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'reviewer_mobile', 'reviewer_college', 'reviewer_course', 'reviewer_address', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'fees_per_year', 'room_sharing', 'comment', 'date'])
         modified = True
     if 'Users' not in wb.sheetnames:
         us = wb.create_sheet('Users')
@@ -88,47 +88,50 @@ def load_reviews():
         if not row or not row[0]:
             continue
         try:
-            if len(row) >= 11:
+            def to_num(v):
+                try:
+                    return float(v) if v is not None and str(v).strip() != '' else None
+                except Exception:
+                    return None
+
+            # New format (17 cols): hostel_id, reviewer_id, reviewer_name, mobile, college, course, address, overall, food, cleaning, staff, location, owner, fees, room_sharing, comment, date
+            if len(row) >= 17:
                 hostel_id = row[0]
                 reviewer_id = row[1]
                 reviewer_name = row[2] or 'Anonymous'
-                def to_num(v):
-                    try:
-                        return float(v) if v is not None and str(v).strip() != '' else None
-                    except Exception:
-                        return None
-
+                reviewer_mobile = row[3] or ''
+                reviewer_college = row[4] or ''
+                reviewer_course = row[5] or ''
+                reviewer_address = row[6] or ''
+                rating_overall = to_num(row[7])
+                rating_food = to_num(row[8])
+                rating_cleaning = to_num(row[9])
+                rating_staff = to_num(row[10])
+                rating_location = to_num(row[11])
+                rating_owner = to_num(row[12])
+                fees_per_year = row[13] or ''
+                room_sharing = row[14] or ''
+                comment = row[15] or ''
+                date_val = row[16]
+            # Old format (11 cols): hostel_id, reviewer_id, reviewer_name, overall, food, cleaning, staff, location, owner, comment, date
+            elif len(row) >= 11:
+                hostel_id = row[0]
+                reviewer_id = row[1]
+                reviewer_name = row[2] or 'Anonymous'
+                reviewer_mobile = ''
+                reviewer_college = ''
+                reviewer_course = ''
+                reviewer_address = ''
                 rating_overall = to_num(row[3])
                 rating_food = to_num(row[4])
                 rating_cleaning = to_num(row[5])
                 rating_staff = to_num(row[6])
                 rating_location = to_num(row[7])
                 rating_owner = to_num(row[8])
+                fees_per_year = ''
+                room_sharing = ''
                 comment = row[9] or ''
                 date_val = row[10]
-            elif len(row) >= 6:
-                hostel_id = row[0]
-                reviewer_id = row[1]
-                reviewer_name = row[2] or 'Anonymous'
-                rating_overall = None
-                try:
-                    rating_overall = float(row[3]) if row[3] is not None else None
-                except Exception:
-                    rating_overall = None
-                rating_food = rating_cleaning = rating_staff = rating_location = rating_owner = None
-                comment = row[4] or ''
-                date_val = row[5]
-            elif len(row) >= 5:
-                hostel_id = row[0]
-                reviewer_id = None
-                reviewer_name = row[1] or 'Anonymous'
-                try:
-                    rating_overall = float(row[2]) if row[2] is not None else None
-                except Exception:
-                    rating_overall = None
-                rating_food = rating_cleaning = rating_staff = rating_location = rating_owner = None
-                comment = row[3] or ''
-                date_val = row[4]
             else:
                 continue
 
@@ -136,12 +139,18 @@ def load_reviews():
                 'hostel_id': hostel_id,
                 'reviewer_id': reviewer_id,
                 'reviewer_name': reviewer_name,
+                'reviewer_mobile': reviewer_mobile,
+                'reviewer_college': reviewer_college,
+                'reviewer_course': reviewer_course,
+                'reviewer_address': reviewer_address,
                 'rating_overall': rating_overall,
                 'rating_food': rating_food,
                 'rating_cleaning': rating_cleaning,
                 'rating_staff': rating_staff,
                 'rating_location': rating_location,
                 'rating_owner': rating_owner,
+                'fees_per_year': fees_per_year,
+                'room_sharing': room_sharing,
                 'comment': comment,
                 'date': date_val
             })
@@ -159,11 +168,11 @@ def add_hostel(name, location, description=''):
     return new_id
 
 
-def add_review(hostel_id, reviewer_id, reviewer_name, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, comment):
+def add_review(hostel_id, reviewer_id, reviewer_name, reviewer_mobile, reviewer_college, reviewer_course, reviewer_address, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, fees_per_year, room_sharing, comment):
     wb = load_workbook_safe()
     rs = wb['Reviews']
     now = datetime.utcnow().isoformat()
-    rs.append([hostel_id, reviewer_id, reviewer_name, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, comment, now])
+    rs.append([hostel_id, reviewer_id, reviewer_name, reviewer_mobile, reviewer_college, reviewer_course, reviewer_address, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, fees_per_year, room_sharing, comment, now])
     wb.save(DATA_FILE)
 
 
@@ -345,6 +354,16 @@ def submit_review():
     hostel_id = request.form.get('hostel_id')
     new_hostel_name = request.form.get('new_hostel_name', '').strip()
     new_hostel_location = request.form.get('new_hostel_location', '').strip()
+    
+    # New review fields
+    reviewer_mobile = request.form.get('reviewer_mobile', '').strip()
+    reviewer_college = request.form.get('reviewer_college', '').strip()
+    reviewer_course = request.form.get('reviewer_course', '').strip()
+    reviewer_address = request.form.get('reviewer_address', '').strip()
+    fees_per_year = request.form.get('fees_per_year', '').strip()
+    room_sharing = request.form.get('room_sharing', '').strip()
+    
+    # Rating fields
     rating_overall = request.form.get('rating_overall')
     rating_food = request.form.get('rating_food')
     rating_cleaning = request.form.get('rating_cleaning')
@@ -379,7 +398,7 @@ def submit_review():
     if hostel_id:
         user_id = session.get('user_id')
         user_name = session.get('user_name', 'Anonymous')
-        add_review(hostel_id, user_id, user_name, overall_val, food_val, cleaning_val, staff_val, location_val, owner_val, comment)
+        add_review(hostel_id, user_id, user_name, reviewer_mobile, reviewer_college, reviewer_course, reviewer_address, overall_val, food_val, cleaning_val, staff_val, location_val, owner_val, fees_per_year, room_sharing, comment)
 
     return redirect(url_for('hostels'))
 

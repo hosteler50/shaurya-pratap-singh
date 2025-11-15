@@ -3,123 +3,195 @@
 {% block title %}Add Review - Hostel Reviews{% endblock %}
 
 {% block content %}
-    <main class="container my-5">
-      <div class="row">
-          <div class="col-md-8 mx-auto">
-          <h3 class="mb-3">Add a Review</h3>
-          <form action="/submit_review" method="post" id="reviewForm" enctype="multipart/form-data">
-            <div class="mb-3">
-              <label class="form-label">Choose Hostel</label>
-              <select class="form-select" name="hostel_id" id="hostelSelect">
-                <option value="">-- Select existing hostel --</option>
-                {% for h in hostels %}
-                  <option value="{{ h.id }}" {% if selected==h.id %}selected{% endif %}>{{ h.name }} — {{ h.location }}</option>
-                {% endfor %}
-                <option value="__new__">Add new hostel</option>
-              </select>
-            </div>
+<main class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-lg rounded-4 p-5" style="background: linear-gradient(135deg, rgba(63,43,99,0.05), rgba(201,163,74,0.02));">
+        <h2 class="mb-4 text-center" style="color: var(--royal-purple, #3f2b63);">
+          <i class="fa-solid fa-pen-to-square me-2"></i>Share Your Hostel Experience
+        </h2>
 
-            <div id="newHostelFields" style="display:none;">
+        <form method="POST" action="/submit_review" enctype="multipart/form-data">
+          <!-- Hostel Selection or New Hostel -->
+          <div class="mb-4">
+            <label class="form-label fw-bold" style="color: var(--royal-purple, #3f2b63);">Select Hostel or Add New</label>
+            <select name="hostel_id" id="hostel_select" class="form-control form-control-lg rounded-3 mb-3">
+              <option value="">-- Choose an existing hostel --</option>
+              {% for h in hostels %}
+                <option value="{{ h.id }}" {% if selected == h.id %}selected{% endif %}>{{ h.name }} ({{ h.location }})</option>
+              {% endfor %}
+            </select>
+
+            <div id="new_hostel_fields" style="display: none; padding: 20px; background: white; border-radius: 15px; border-left: 5px solid var(--royal-purple, #3f2b63);">
+              <h5 class="mb-3" style="color: var(--royal-purple, #3f2b63);">New Hostel Details</h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <input type="text" name="new_hostel_name" placeholder="Hostel Name" class="form-control form-control-lg rounded-3">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <input type="text" name="new_hostel_location" placeholder="Location" class="form-control form-control-lg rounded-3">
+                </div>
+              </div>
               <div class="mb-3">
-                <label class="form-label">New Hostel Name</label>
-                <input class="form-control" name="new_hostel_name" placeholder="Hostel name">
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Location</label>
-                <input class="form-control" name="new_hostel_location" placeholder="City or area">
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Hostel Image (optional)</label>
-                <input class="form-control" type="file" name="new_hostel_image" accept="image/*">
+                <input type="file" name="new_hostel_image" accept="image/*" class="form-control form-control-lg rounded-3" placeholder="Upload Hostel Image">
               </div>
             </div>
+          </div>
 
-            <!-- reviewer is taken from logged-in user -->
-
-            <div class="mb-3">
-              <label class="form-label">Overall Rating</label>
-              <select class="form-select" name="rating_overall">
-                <option value="">No rating</option>
-                <option>5</option>
-                <option>4</option>
-                <option>3</option>
-                <option>2</option>
-                <option>1</option>
-              </select>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Food</label>
-                <select class="form-select" name="rating_food">
-                  <option value="">—</option>
-                  <option>5</option>
-                  <option>4</option>
-                  <option>3</option>
-                  <option>2</option>
-                  <option>1</option>
-                </select>
+          <!-- Reviewer Information -->
+          <div class="card mb-4 rounded-3 border-0" style="background: linear-gradient(135deg, rgba(63,43,99,0.08), rgba(201,163,74,0.04));">
+            <div class="card-body">
+              <h5 class="card-title mb-3" style="color: var(--royal-purple, #3f2b63);">
+                <i class="fa-solid fa-user me-2"></i>Your Information
+              </h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Mobile Number *</label>
+                  <input type="tel" name="reviewer_mobile" placeholder="10-digit mobile number" class="form-control form-control-lg rounded-3" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">College/University Name *</label>
+                  <input type="text" name="reviewer_college" placeholder="Your college name" class="form-control form-control-lg rounded-3" required>
+                </div>
               </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Cleaning</label>
-                <select class="form-select" name="rating_cleaning">
-                  <option value="">—</option>
-                  <option>5</option>
-                  <option>4</option>
-                  <option>3</option>
-                  <option>2</option>
-                  <option>1</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Staff</label>
-                <select class="form-select" name="rating_staff">
-                  <option value="">—</option>
-                  <option>5</option>
-                  <option>4</option>
-                  <option>3</option>
-                  <option>2</option>
-                  <option>1</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Location</label>
-                <select class="form-select" name="rating_location">
-                  <option value="">—</option>
-                  <option>5</option>
-                  <option>4</option>
-                  <option>3</option>
-                  <option>2</option>
-                  <option>1</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Owner Behaviour</label>
-                <select class="form-select" name="rating_owner">
-                  <option value="">—</option>
-                  <option>5</option>
-                  <option>4</option>
-                  <option>3</option>
-                  <option>2</option>
-                  <option>1</option>
-                </select>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Course *</label>
+                  <input type="text" name="reviewer_course" placeholder="Your course (e.g., B.Tech, MBA)" class="form-control form-control-lg rounded-3" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Address *</label>
+                  <input type="text" name="reviewer_address" placeholder="Your address" class="form-control form-control-lg rounded-3" required>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div class="mb-3">
-              <label class="form-label">Comment</label>
-              <textarea class="form-control" name="comment" rows="4" placeholder="Share your experience"></textarea>
+          <!-- Hostel Details -->
+          <div class="card mb-4 rounded-3 border-0" style="background: linear-gradient(135deg, rgba(63,43,99,0.08), rgba(201,163,74,0.04));">
+            <div class="card-body">
+              <h5 class="card-title mb-3" style="color: var(--royal-purple, #3f2b63);">
+                <i class="fa-solid fa-building me-2"></i>Hostel Details
+              </h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Fees Per Year (₹) *</label>
+                  <input type="number" name="fees_per_year" placeholder="e.g., 50000" class="form-control form-control-lg rounded-3" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Room Sharing *</label>
+                  <select name="room_sharing" class="form-control form-control-lg rounded-3" required>
+                    <option value="">-- Select room sharing --</option>
+                    <option value="2">2 People Sharing</option>
+                    <option value="3">3 People Sharing</option>
+                    <option value="4">4 People Sharing</option>
+                  </select>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="d-flex justify-content-between align-items-center">
-              <a class="btn btn-outline-secondary" href="/hostels"><i class="fa-solid fa-arrow-left me-1"></i>Back</a>
-              <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane me-1"></i>Submit Review</button>
+          <!-- Ratings -->
+          <div class="card mb-4 rounded-3 border-0" style="background: linear-gradient(135deg, rgba(63,43,99,0.08), rgba(201,163,74,0.04));">
+            <div class="card-body">
+              <h5 class="card-title mb-3" style="color: var(--royal-purple, #3f2b63);">
+                <i class="fa-solid fa-star me-2"></i>Rate Your Experience (1-5 Stars)
+              </h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Overall Rating *</label>
+                  <select name="rating_overall" class="form-control form-control-lg rounded-3" required>
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Food Quality</label>
+                  <select name="rating_food" class="form-control form-control-lg rounded-3">
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Cleanliness</label>
+                  <select name="rating_cleaning" class="form-control form-control-lg rounded-3">
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Staff Behaviour</label>
+                  <select name="rating_staff" class="form-control form-control-lg rounded-3">
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Location</label>
+                  <select name="rating_location" class="form-control form-control-lg rounded-3">
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Owner Friendliness</label>
+                  <select name="rating_owner" class="form-control form-control-lg rounded-3">
+                    <option value="">-- Select --</option>
+                    {% for i in range(1, 6) %}
+                      <option value="{{ i }}">{{ i }} ⭐</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <!-- Comment -->
+          <div class="mb-4">
+            <label class="form-label fw-bold" style="color: var(--royal-purple, #3f2b63);">Your Review Comment *</label>
+            <textarea name="comment" rows="5" placeholder="Share your detailed experience about the hostel..." class="form-control form-control-lg rounded-3" required></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-grid gap-2 d-flex justify-content-between">
+            <a href="/hostels" class="btn btn-lg rounded-3" style="background: #6c757d; color: white; font-weight: bold;">
+              <i class="fa-solid fa-arrow-left me-2"></i>Back
+            </a>
+            <button type="submit" class="btn btn-lg rounded-3" style="background: linear-gradient(135deg, var(--royal-purple, #3f2b63), #6b4c99); color: white; font-weight: bold;">
+              <i class="fa-solid fa-paper-plane me-2"></i>Submit Review
+            </button>
+          </div>
+        </form>
       </div>
-    </main>
+    </div>
+  </div>
+</main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/main.js"></script>
-  {% endblock %}
+<script>
+  // Toggle new hostel fields
+  document.getElementById('hostel_select').addEventListener('change', function() {
+    const newFields = document.getElementById('new_hostel_fields');
+    if (this.value === '') {
+      newFields.style.display = 'block';
+    } else {
+      newFields.style.display = 'none';
+    }
+  });
+
+  // Trigger change event on page load
+  if (!document.getElementById('hostel_select').value) {
+    document.getElementById('hostel_select').dispatchEvent(new Event('change'));
+  }
+</script>
+
+{% endblock %}
