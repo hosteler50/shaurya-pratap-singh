@@ -15,7 +15,8 @@
           </div>
           <div>
             <a class="btn btn-sm btn-outline-primary me-2" href="/admin/backups/download/{{ b.name }}">Download</a>
-            <a class="btn btn-sm btn-outline-secondary" href="/admin/reviews">Back</a>
+            <a class="btn btn-sm btn-outline-secondary me-2" href="/admin/reviews">Back</a>
+            <a class="btn btn-sm btn-danger" href="/admin/backups/restore/{{ b.name }}" onclick="return confirm('Restore from this backup? A pre-restore backup will be created first.')">Restore</a>
           </div>
         </div>
       {% endfor %}

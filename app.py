@@ -431,6 +431,44 @@ def admin_backups_download(filename):
     return send_from_directory(DATA_DIR, filename, as_attachment=True)
 
 
+@app.route('/admin/backups/restore/<path:filename>', methods=['GET', 'POST'])
+def admin_backups_restore(filename):
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    if not is_admin():
+        return "Forbidden", 403
+
+    # validate filename
+    if not filename.startswith('hostels_backup_'):
+        abort(404)
+
+    backup_full = os.path.join(DATA_DIR, filename)
+    if not os.path.exists(backup_full):
+        abort(404)
+
+    if request.method == 'GET':
+        # show confirmation page
+        try:
+            size = os.path.getsize(backup_full)
+            mtime = datetime.utcfromtimestamp(os.path.getmtime(backup_full)).isoformat() + 'Z'
+        except Exception:
+            size = None
+            mtime = None
+        return render_template('admin_restore_confirm.html', backup_file=filename, size=size, mtime=mtime)
+
+    # POST -> perform restore (safe: create a pre-restore backup first)
+    pre_backup = backup_workbook_file()
+    try:
+        # copy selected backup to DATA_FILE
+        shutil.copy2(backup_full, DATA_FILE)
+        restored = True
+    except Exception as e:
+        restored = False
+        error = str(e)
+
+    return render_template('admin_restore_result.html', backup_file=filename, pre_backup=os.path.basename(pre_backup) if pre_backup else None, restored=restored, error=(error if not restored else None))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':

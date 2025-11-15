@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm Restore{% endblock %}
+
+{% block content %}
+<main class="container my-5">
+  <div class="card p-4">
+    <h4>Confirm Restore</h4>
+    <p class="small text-muted">You are about to restore the workbook from backup: <strong>{{ backup_file }}</strong></p>
+    <p class="small text-muted">Backup created: {{ mtime }} {% if size %}- {{ (size/1024)|round(2) }} KB{% endif %}</p>
+    <div class="alert alert-warning">Before restoring, a pre-restore backup of the current workbook will be created. This operation will replace the current `hostels.xlsx` file.</div>
+    <form method="post">
+      <button type="submit" class="btn btn-danger">Yes, restore from this backup</button>
+      <a href="/admin/backups" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Restore Result{% endblock %}
+
+{% block content %}
+<main class="container my-5">
+  {% if restored %}
+    <div class="alert alert-success">
+      <h4 class="alert-heading">Restore Successful</h4>
+      <p>The workbook was restored from <strong>{{ backup_file }}</strong>.</p>
+      {% if pre_backup %}
+        <p>A pre-restore backup was saved as <strong>{{ pre_backup }}</strong> before the restore.</p>
+      {% endif %}
+      <a href="/admin/reviews" class="btn btn-primary">Back to Reviews</a>
+    </div>
+  {% else %}
+    <div class="alert alert-danger">
+      <h4 class="alert-heading">Restore Failed</h4>
+      <p>Error: {{ error }}</p>
+      <a href="/admin/backups" class="btn btn-secondary">Back to Backups</a>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}
