@@ -1,0 +1,15 @@
+name: Keep Render Warm
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Render cold starts
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render app health endpoint
+        run: |
+          curl -f https://shaurya-pratap-singh.onrender.com/health || true

@@ -1,53 +1,216 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response, session
-from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 import os
+from openpyxl import Workbook, load_workbook
 from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Hostel, Review
 
 app = Flask(__name__)
-
-# Database configuration
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_PATH = os.path.join(BASE_DIR, 'data', 'hostels.db')
-os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DATABASE_PATH}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'hostel-review-secret-key-change-in-prod')
 app.config['SESSION_TYPE'] = 'filesystem'
-
-db.init_app(app)
 Session(app)
 
-# Ensure upload directory exists
-UPLOADS_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
-os.makedirs(UPLOADS_DIR, exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_FILE = os.path.join(DATA_DIR, 'hostels.xlsx')
 
 
-@app.before_request
-def create_tables():
-    """Create database tables on first request."""
-    db.create_all()
-    seed_sample_data()
+def ensure_data_file():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    uploads_dir = os.path.join(BASE_DIR, 'static', 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    if not os.path.exists(DATA_FILE):
+        wb = Workbook()
+        hs = wb.active
+        hs.title = 'Hostels'
+        hs.append(['id', 'name', 'location', 'description', 'image'])
+        hs.append([str(uuid.uuid4()), 'Maple Residency', 'Downtown', 'Clean rooms, friendly staff', ''])
+        hs.append([str(uuid.uuid4()), 'Seaside Lodge', 'Beachfront', 'Great view and lively area', ''])
+
+        rs = wb.create_sheet('Reviews')
+        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'comment', 'date'])
+
+        us = wb.create_sheet('Users')
+        us.append(['id', 'email', 'password_hash', 'name'])
+
+        wb.save(DATA_FILE)
 
 
-def seed_sample_data():
-    """Add sample hostels on first startup if DB is empty."""
-    with app.app_context():
-        # Only seed if no hostels exist
-        if Hostel.query.first() is None:
-            sample_hostels = [
-                Hostel(name='Maple Residency', location='Downtown', description='Clean rooms, friendly staff', image=''),
-                Hostel(name='Seaside Lodge', location='Beachfront', description='Great view and lively area', image=''),
-                Hostel(name='Mountain View Hostel', location='Himalayan Region', description='Peaceful mountain retreat with stunning views', image=''),
-            ]
-            for hostel in sample_hostels:
-                db.session.add(hostel)
-            db.session.commit()
+def load_workbook_safe():
+    ensure_data_file()
+    wb = load_workbook(DATA_FILE)
+    modified = False
+    if 'Hostels' not in wb.sheetnames:
+        hs = wb.create_sheet('Hostels')
+        hs.append(['id', 'name', 'location', 'description', 'image'])
+        modified = True
+    if 'Reviews' not in wb.sheetnames:
+        rs = wb.create_sheet('Reviews')
+        rs.append(['hostel_id', 'reviewer_id', 'reviewer_name', 'rating_overall', 'rating_food', 'rating_cleaning', 'rating_staff', 'rating_location', 'rating_owner', 'comment', 'date'])
+        modified = True
+    if 'Users' not in wb.sheetnames:
+        us = wb.create_sheet('Users')
+        us.append(['id', 'email', 'password_hash', 'name'])
+        modified = True
+    if modified:
+        wb.save(DATA_FILE)
+    return wb
+
+
+def load_hostels():
+    wb = load_workbook_safe()
+    if 'Hostels' not in wb.sheetnames:
+        return []
+    hs = wb['Hostels']
+    hostels = []
+    for row in hs.iter_rows(min_row=2, values_only=True):
+        if not row[0]:
+            continue
+        hostels.append({
+            'id': row[0],
+            'name': row[1],
+            'location': row[2],
+            'description': row[3] or '',
+            'image': row[4] or ''
+        })
+    return hostels
+
+
+def load_reviews():
+    wb = load_workbook_safe()
+    if 'Reviews' not in wb.sheetnames:
+        return []
+    rs = wb['Reviews']
+    reviews = []
+    for row in rs.iter_rows(min_row=2, values_only=True):
+        if not row or not row[0]:
+            continue
+        try:
+            if len(row) >= 11:
+                hostel_id = row[0]
+                reviewer_id = row[1]
+                reviewer_name = row[2] or 'Anonymous'
+                def to_num(v):
+                    try:
+                        return float(v) if v is not None and str(v).strip() != '' else None
+                    except Exception:
+                        return None
+
+                rating_overall = to_num(row[3])
+                rating_food = to_num(row[4])
+                rating_cleaning = to_num(row[5])
+                rating_staff = to_num(row[6])
+                rating_location = to_num(row[7])
+                rating_owner = to_num(row[8])
+                comment = row[9] or ''
+                date_val = row[10]
+            elif len(row) >= 6:
+                hostel_id = row[0]
+                reviewer_id = row[1]
+                reviewer_name = row[2] or 'Anonymous'
+                rating_overall = None
+                try:
+                    rating_overall = float(row[3]) if row[3] is not None else None
+                except Exception:
+                    rating_overall = None
+                rating_food = rating_cleaning = rating_staff = rating_location = rating_owner = None
+                comment = row[4] or ''
+                date_val = row[5]
+            elif len(row) >= 5:
+                hostel_id = row[0]
+                reviewer_id = None
+                reviewer_name = row[1] or 'Anonymous'
+                try:
+                    rating_overall = float(row[2]) if row[2] is not None else None
+                except Exception:
+                    rating_overall = None
+                rating_food = rating_cleaning = rating_staff = rating_location = rating_owner = None
+                comment = row[3] or ''
+                date_val = row[4]
+            else:
+                continue
+
+            reviews.append({
+                'hostel_id': hostel_id,
+                'reviewer_id': reviewer_id,
+                'reviewer_name': reviewer_name,
+                'rating_overall': rating_overall,
+                'rating_food': rating_food,
+                'rating_cleaning': rating_cleaning,
+                'rating_staff': rating_staff,
+                'rating_location': rating_location,
+                'rating_owner': rating_owner,
+                'comment': comment,
+                'date': date_val
+            })
+        except Exception:
+            continue
+    return reviews
+
+
+def add_hostel(name, location, description=''):
+    wb = load_workbook_safe()
+    hs = wb['Hostels']
+    new_id = str(uuid.uuid4())
+    hs.append([new_id, name, location, description, ''])
+    wb.save(DATA_FILE)
+    return new_id
+
+
+def add_review(hostel_id, reviewer_id, reviewer_name, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, comment):
+    wb = load_workbook_safe()
+    rs = wb['Reviews']
+    now = datetime.utcnow().isoformat()
+    rs.append([hostel_id, reviewer_id, reviewer_name, rating_overall, rating_food, rating_cleaning, rating_staff, rating_location, rating_owner, comment, now])
+    wb.save(DATA_FILE)
+
+
+def load_users():
+    wb = load_workbook_safe()
+    if 'Users' not in wb.sheetnames:
+        return []
+    us = wb['Users']
+    users = []
+    for row in us.iter_rows(min_row=2, values_only=True):
+        if not row[0]:
+            continue
+        users.append({
+            'id': row[0],
+            'email': row[1],
+            'password_hash': row[2],
+            'name': row[3]
+        })
+    return users
+
+
+def user_by_email(email):
+    users = load_users()
+    for u in users:
+        if u['email'].lower() == email.lower():
+            return u
+    return None
+
+
+def user_by_id(user_id):
+    users = load_users()
+    for u in users:
+        if u['id'] == user_id:
+            return u
+    return None
+
+
+def create_user(email, password, name):
+    if user_by_email(email):
+        return None
+    wb = load_workbook_safe()
+    us = wb['Users']
+    new_id = str(uuid.uuid4())
+    pwd_hash = generate_password_hash(password)
+    us.append([new_id, email, pwd_hash, name])
+    wb.save(DATA_FILE)
+    return new_id
 
 
 def save_hostel_image(file_storage):
@@ -56,33 +219,31 @@ def save_hostel_image(file_storage):
     filename = secure_filename(file_storage.filename)
     if filename == '':
         return ''
+    uploads_dir = os.path.join(BASE_DIR, 'static', 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
     unique_name = f"{uuid.uuid4().hex}_{filename}"
-    path = os.path.join(UPLOADS_DIR, unique_name)
+    path = os.path.join(uploads_dir, unique_name)
     file_storage.save(path)
     return f"/static/uploads/{unique_name}"
 
 
 def average_rating_for(hostel_id):
-    reviews = Review.query.filter_by(hostel_id=hostel_id).all()
-    reviews_with_rating = [r for r in reviews if r.rating_overall is not None]
-    if not reviews_with_rating:
+    reviews = [r for r in load_reviews() if r['hostel_id'] == hostel_id and r.get('rating_overall') is not None]
+    if not reviews:
         return None
-    avg = sum(r.rating_overall for r in reviews_with_rating) / len(reviews_with_rating)
-    return round(avg, 2)
+    return round(sum(r.get('rating_overall', 0) for r in reviews) / len(reviews), 2)
 
 
 def average_ratings_for(hostel_id):
-    reviews = Review.query.filter_by(hostel_id=hostel_id).all()
+    reviews = [r for r in load_reviews() if r['hostel_id'] == hostel_id]
     if not reviews:
         return {
-            'overall': None, 'food': None, 'cleaning': None, 
-            'staff': None, 'location': None, 'owner': None
+            'overall': None, 'food': None, 'cleaning': None, 'staff': None, 'location': None, 'owner': None
         }
-    
-    def avg(attr_name):
-        vals = [getattr(r, attr_name) for r in reviews if getattr(r, attr_name) is not None]
-        return round(sum(vals) / len(vals), 2) if vals else None
-    
+    def avg(key):
+        vals = [r.get(key) for r in reviews if r.get(key) is not None]
+        return round(sum(vals)/len(vals), 2) if vals else None
+
     return {
         'overall': avg('rating_overall'),
         'food': avg('rating_food'),
@@ -93,17 +254,16 @@ def average_ratings_for(hostel_id):
     }
 
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password_hash, password):
-            session['user_id'] = user.id
-            session['user_name'] = user.name
-            session['user_email'] = user.email
+        user = user_by_email(email)
+        if user and check_password_hash(user['password_hash'], password):
+            session['user_id'] = user['id']
+            session['user_name'] = user['name']
+            session['user_email'] = user['email']
             return redirect(url_for('hostels'))
         else:
             return render_template('login.html', error='Invalid email or password')
@@ -124,23 +284,15 @@ def signup():
             return render_template('signup.html', error='Passwords do not match')
         if len(password) < 4:
             return render_template('signup.html', error='Password must be at least 4 characters')
-        if User.query.filter_by(email=email).first():
+        if user_by_email(email):
             return render_template('signup.html', error='Email already registered')
         
-        new_user = User(
-            email=email,
-            password_hash=generate_password_hash(password),
-            name=name
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        
-        session['user_id'] = new_user.id
-        session['user_name'] = new_user.name
-        session['user_email'] = new_user.email
+        user_id = create_user(email, password, name)
+        session['user_id'] = user_id
+        session['user_name'] = name
+        session['user_email'] = email
         return redirect(url_for('hostels'))
     return render_template('signup.html')
-
 
 
 @app.route('/logout')
@@ -157,17 +309,15 @@ def index():
 @app.route('/hostels')
 def hostels():
     q = request.args.get('q', '').strip().lower()
-    hostels_list = Hostel.query.all()
-    
+    hostels_list = load_hostels()
     if q:
-        hostels_list = [h for h in hostels_list if q in (h.name or '').lower() or q in (h.location or '').lower()]
-    
-    # Attach ratings and reviews
+        hostels_list = [h for h in hostels_list if q in (h['name'] or '').lower() or q in (h['location'] or '').lower()]
+
     for h in hostels_list:
-        h.avg_rating = average_rating_for(h.id)
-        h.reviews = Review.query.filter_by(hostel_id=h.id).all()
-        av = average_ratings_for(h.id)
-        h.rating_counts = {
+        h['avg_rating'] = average_rating_for(h['id'])
+        h['reviews'] = [r for r in load_reviews() if r['hostel_id'] == h['id']]
+        av = average_ratings_for(h['id'])
+        h['rating_counts'] = {
             'overall': av['overall'],
             'food': av['food'],
             'cleaning': av['cleaning'],
@@ -175,7 +325,7 @@ def hostels():
             'location': av['location'],
             'owner': av['owner']
         }
-    
+
     return render_template('hostels.html', hostels=hostels_list, query=request.args.get('q', ''), current_user=session.get('user_id'))
 
 
@@ -183,7 +333,7 @@ def hostels():
 def review_form():
     if not session.get('user_id'):
         return redirect(url_for('login'))
-    hostels_list = Hostel.query.all()
+    hostels_list = load_hostels()
     selected = request.args.get('hostel_id')
     return render_template('review.html', hostels=hostels_list, selected=selected)
 
@@ -192,12 +342,9 @@ def review_form():
 def submit_review():
     if not session.get('user_id'):
         return redirect(url_for('login'))
-    
     hostel_id = request.form.get('hostel_id')
     new_hostel_name = request.form.get('new_hostel_name', '').strip()
     new_hostel_location = request.form.get('new_hostel_location', '').strip()
-    
-    # Collect category ratings
     rating_overall = request.form.get('rating_overall')
     rating_food = request.form.get('rating_food')
     rating_cleaning = request.form.get('rating_cleaning')
@@ -205,101 +352,77 @@ def submit_review():
     rating_location = request.form.get('rating_location')
     rating_owner = request.form.get('rating_owner')
     comment = request.form.get('comment', '').strip()
-    
+
+    if new_hostel_name:
+        file = request.files.get('new_hostel_image')
+        image_path = save_hostel_image(file)
+        wb = load_workbook_safe()
+        hs = wb['Hostels']
+        new_id = str(uuid.uuid4())
+        hs.append([new_id, new_hostel_name, new_hostel_location, '', image_path])
+        wb.save(DATA_FILE)
+        hostel_id = new_id
+
     def to_float(v):
         try:
             return float(v) if v is not None and str(v).strip() != '' else None
         except Exception:
             return None
-    
-    if new_hostel_name:
-        # Create new hostel with optional image
-        file = request.files.get('new_hostel_image')
-        image_path = save_hostel_image(file)
-        new_hostel = Hostel(
-            name=new_hostel_name,
-            location=new_hostel_location,
-            description='',
-            image=image_path
-        )
-        db.session.add(new_hostel)
-        db.session.commit()
-        hostel_id = new_hostel.id
-    
+
+    overall_val = to_float(rating_overall)
+    food_val = to_float(rating_food)
+    cleaning_val = to_float(rating_cleaning)
+    staff_val = to_float(rating_staff)
+    location_val = to_float(rating_location)
+    owner_val = to_float(rating_owner)
+
     if hostel_id:
-        new_review = Review(
-            hostel_id=hostel_id,
-            reviewer_id=session.get('user_id'),
-            reviewer_name=session.get('user_name', 'Anonymous'),
-            rating_overall=to_float(rating_overall),
-            rating_food=to_float(rating_food),
-            rating_cleaning=to_float(rating_cleaning),
-            rating_staff=to_float(rating_staff),
-            rating_location=to_float(rating_location),
-            rating_owner=to_float(rating_owner),
-            comment=comment
-        )
-        db.session.add(new_review)
-        db.session.commit()
-    
+        user_id = session.get('user_id')
+        user_name = session.get('user_name', 'Anonymous')
+        add_review(hostel_id, user_id, user_name, overall_val, food_val, cleaning_val, staff_val, location_val, owner_val, comment)
+
     return redirect(url_for('hostels'))
-
-
-
-def rating_counts_for(hostel_id):
-    reviews = Review.query.filter_by(hostel_id=hostel_id).all()
-    counts = {str(i): 0 for i in range(1, 6)}
-    for r in reviews:
-        if r.rating_overall is not None:
-            key = str(int(r.rating_overall))
-            if key in counts:
-                counts[key] += 1
-    return counts
 
 
 @app.route('/export_reviews')
 def export_reviews():
     hostel_id = request.args.get('hostel_id')
+    reviews_list = load_reviews()
     if hostel_id:
-        reviews_list = Review.query.filter_by(hostel_id=hostel_id).all()
-    else:
-        reviews_list = Review.query.all()
-    
-    # Build CSV with all rating categories
+        reviews_list = [r for r in reviews_list if r['hostel_id'] == hostel_id]
     csv_lines = ['hostel_id,reviewer_id,reviewer_name,rating_overall,rating_food,rating_cleaning,rating_staff,rating_location,rating_owner,comment,date']
     for r in reviews_list:
         row = [
-            r.hostel_id or '',
-            r.reviewer_id or '',
-            (r.reviewer_name or '').replace('"', '""'),
-            str(r.rating_overall or ''),
-            str(r.rating_food or ''),
-            str(r.rating_cleaning or ''),
-            str(r.rating_staff or ''),
-            str(r.rating_location or ''),
-            str(r.rating_owner or ''),
-            (r.comment or '').replace('"', '""'),
-            r.created_at.isoformat() if r.created_at else ''
+            r.get('hostel_id') or '',
+            r.get('reviewer_id') or '',
+            (r.get('reviewer_name') or '').replace('"','""'),
+            str(r.get('rating_overall') or ''),
+            str(r.get('rating_food') or ''),
+            str(r.get('rating_cleaning') or ''),
+            str(r.get('rating_staff') or ''),
+            str(r.get('rating_location') or ''),
+            str(r.get('rating_owner') or ''),
+            (r.get('comment') or '').replace('"','""'),
+            r.get('date') or ''
         ]
         csv_lines.append('"' + '","'.join(row) + '"')
-    
     csv_text = '\n'.join(csv_lines)
     return Response(csv_text, mimetype='text/csv', headers={"Content-Disposition": "attachment; filename=reviews.csv"})
 
 
 @app.route('/api/hostels')
 def api_hostels():
-    hostels_list = Hostel.query.all()
-    return jsonify([{
-        'id': h.id,
-        'name': h.name,
-        'location': h.location,
-        'description': h.description,
-        'image': h.image
-    } for h in hostels_list])
+    hostels_list = load_hostels()
+    return jsonify(hostels_list)
+
+
+@app.route('/health')
+def health():
+    """Health check endpoint for keeping Render warm."""
+    return jsonify({'status': 'ok'}), 200
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+    ensure_data_file()
     app.run(debug=True)
+
