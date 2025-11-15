@@ -6,6 +6,7 @@ from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+import shutil
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'hostel-review-secret-key-change-in-prod')
@@ -267,6 +268,19 @@ def migrate_reviews_in_wb():
     return len(new_rows)
 
 
+def backup_workbook_file():
+    """Create a file-copy backup of the workbook and return backup path."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    backup_name = f'hostels_backup_{timestamp}.xlsx'
+    backup_path = os.path.join(DATA_DIR, backup_name)
+    # copy if exists
+    if os.path.exists(DATA_FILE):
+        shutil.copy2(DATA_FILE, backup_path)
+        return backup_path
+    return None
+
+
 def user_by_email(email):
     users = load_users()
     for u in users:
@@ -360,6 +374,21 @@ def admin_migrate_reviews():
 
     count = migrate_reviews_in_wb()
     return render_template('admin_migrate_result.html', count=count)
+
+
+@app.route('/admin/backup_workbook')
+def admin_backup_workbook():
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    if not is_admin():
+        return "Forbidden", 403
+
+    backup_path = backup_workbook_file()
+    if backup_path:
+        fname = os.path.basename(backup_path)
+        return render_template('admin_backup_result.html', backup_file=fname)
+    else:
+        return render_template('admin_backup_result.html', backup_file=None)
 
 
 @app.route('/login', methods=['GET', 'POST'])

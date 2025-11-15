@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Result{% endblock %}
+
+{% block content %}
+<main class="container my-5">
+  {% if backup_file %}
+    <div class="alert alert-success">
+      <h4 class="alert-heading">Backup Created</h4>
+      <p>Backup file created: <strong>{{ backup_file }}</strong> in the `data/` folder.</p>
+      <a href="/admin/reviews" class="btn btn-primary">Back to Reviews</a>
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      <h4 class="alert-heading">Backup Failed</h4>
+      <p>Could not create backup — original workbook not found.</p>
+      <a href="/admin/reviews" class="btn btn-primary">Back to Reviews</a>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}
