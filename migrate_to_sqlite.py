@@ -2,23 +2,26 @@
 """
 Migration script: Excel (openpyxl) -> SQLite (SQLAlchemy)
 Run this ONCE before deploying to convert existing data.
+Usage: python migrate_to_sqlite.py
 """
 import os
 import sys
 from openpyxl import load_workbook
 from werkzeug.security import generate_password_hash
-from app import app, db
-from models import User, Hostel, Review
 from datetime import datetime
+
+# Import app and db
+from app import app, db, init_db
+from models import User, Hostel, Review
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'hostels.xlsx')
 
 def migrate():
     """Load data from Excel and insert into SQLite."""
     
-    # Create all tables
     with app.app_context():
-        db.create_all()
+        # Create all tables
+        init_db()
         print("✓ Created database tables")
         
         if not os.path.exists(DATA_FILE):

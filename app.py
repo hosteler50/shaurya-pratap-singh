@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response, session, send_from_directory, abort
 from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
 import os
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
@@ -7,16 +8,40 @@ import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import shutil
+from ipaddress import ip_address, ip_network
+from flask import request, abort
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'hostel-review-secret-key-change-in-prod')
 app.config['SESSION_TYPE'] = 'filesystem'
-Session(app)
 
+# Initialize SQLAlchemy for SQLite database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, 'hostels.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+Session(app)
+
+# Excel workbook path (for backward-compat; data will migrate to SQLite)
 DATA_FILE = os.path.join(DATA_DIR, 'hostels.xlsx')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'hosteler50@gmail.com')
+
+ALLOWED_IPS = {"100.20.92.101","44.225.181.72","44.227.217.144"}
+ALLOWED_CIDRS = ["74.220.48.0/24", "74.220.56.0/24"]
+
+
+def init_db():
+    """Initialize database tables if they don't exist."""
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"⚠ DB initialization error (may be expected on first run): {e}")
 
 
 def ensure_data_file():
@@ -691,7 +716,29 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 
+def ip_allowed(remote_addr):
+    try:
+        ip = ip_address(remote_addr)
+    except Exception:
+        return False
+    if remote_addr in ALLOWED_IPS:
+        return True
+    for cidr in ALLOWED_CIDRS:
+        if ip in ip_network(cidr):
+            return True
+    return False
+
+@app.before_request
+def restrict_by_ip():
+    # prefer X-Forwarded-For when behind a proxy
+    xff = request.headers.get('X-Forwarded-For', '')
+    client_ip = xff.split(',')[0].strip() if xff else request.remote_addr
+    if not ip_allowed(client_ip):
+        abort(403)
+
+
 if __name__ == '__main__':
+    init_db()
     ensure_data_file()
     app.run(debug=True)
 

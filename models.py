@@ -2,6 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import uuid
 
+# Import db from app to avoid circular imports
+# This module is only used after app is initialized
 db = SQLAlchemy()
 
 class User(db.Model):
